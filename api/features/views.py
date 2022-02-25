@@ -194,17 +194,15 @@ class BaseFeatureStateViewSet(viewsets.ModelViewSet):
                 version=latest_version_dict["max_version"],
             )
 
-        queryset = FeatureState.objects.filter(q)
+        queryset = FeatureState.objects.filter(Q(environment=environment) & q)
         queryset = self._apply_query_param_filters(queryset)
 
         return queryset
 
     def _apply_query_param_filters(self, queryset: QuerySet) -> QuerySet:
-        if "anyIdentity" in self.request.query_params:
-            queryset = queryset.exclude(identity=None)
         if self.request.query_params.get("feature"):
             queryset = queryset.filter(
-                feature__id=int(self.request.query_params.get("feature"))
+                feature__id=int(self.request.query_params["feature"])
             )
         return queryset
 
@@ -366,7 +364,11 @@ class EnvironmentFeatureStateViewSet(BaseFeatureStateViewSet):
     permission_classes = [IsAuthenticated, EnvironmentFeatureStatePermissions]
 
     def get_queryset(self):
-        return super().get_queryset().filter(identity=None, feature_segment=None)
+        queryset = super().get_queryset().filter(feature_segment=None)
+        if "anyIdentity" in self.request.query_params:
+            # TODO: deprecate anyIdentity query parameter
+            return queryset.exclude(identity=None)
+        return queryset.filter(identity=None)
 
     def get_serializer_class(self):
         if self.action == "create_new_version":
