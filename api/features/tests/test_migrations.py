@@ -155,9 +155,7 @@ def test_remove_old_versions_and_drafts_reverse(migrator):
     v1 = FeatureState.objects.create(
         environment=environment, feature=feature, version=1
     )
-    FeatureState.objects.create(
-        environment=environment, feature=feature, version=2
-    )
+    FeatureState.objects.create(environment=environment, feature=feature, version=2)
 
     # When
     new_state = migrator.apply_tested_migration(

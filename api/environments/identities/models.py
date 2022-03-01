@@ -7,7 +7,6 @@ from django.utils import timezone
 from environments.dynamodb import DynamoIdentityWrapper
 from environments.identities.traits.models import Trait
 from environments.models import Environment
-from features.constants import COMMITTED
 from features.models import FeatureState
 from features.multivariate.models import MultivariateFeatureStateValue
 

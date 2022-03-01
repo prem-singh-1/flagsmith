@@ -18,7 +18,6 @@ from audit.models import (
 )
 from environments.identities.models import Identity
 from environments.models import Environment
-from features.constants import COMMITTED
 from features.models import (
     Feature,
     FeatureSegment,

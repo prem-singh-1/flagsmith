@@ -32,7 +32,6 @@ from environments.permissions.permissions import (
     NestedEnvironmentPermissions,
 )
 
-from .constants import COMMITTED
 from .models import Feature, FeatureState
 from .permissions import (
     EnvironmentFeatureStatePermissions,
