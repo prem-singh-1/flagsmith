@@ -306,6 +306,9 @@ class FeatureState(LifecycleModel, models.Model):
         clone.save()
         # clone the related objects
         self.feature_state_value.clone(clone)
+
+        # TODO: clone multivariate feature state values
+
         return clone
 
     def get_feature_state_value(self, identity: "Identity" = None) -> typing.Any:
