@@ -29,12 +29,9 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name="featurestate",
-            name="status",
-            field=models.CharField(
-                choices=[("DRAFT", "Draft"), ("COMMITTED", "Committed")],
-                default="COMMITTED",
-                max_length=50,
-            ),
+            name="live_from",
+            field=models.DateTimeField(null=True, default=django.utils.timezone.now),
+            preserve_default=False,
         ),
         migrations.AddField(
             model_name="featurestate",
@@ -56,12 +53,9 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name="historicalfeaturestate",
-            name="status",
-            field=models.CharField(
-                choices=[("DRAFT", "Draft"), ("COMMITTED", "Committed")],
-                default="COMMITTED",
-                max_length=50,
-            ),
+            name="live_from",
+            field=models.DateTimeField(null=True, default=django.utils.timezone.now),
+            preserve_default=False,
         ),
         migrations.AddField(
             model_name="historicalfeaturestate",

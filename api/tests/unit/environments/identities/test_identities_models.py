@@ -1,5 +1,6 @@
+from django.utils import timezone
+
 from environments.identities.models import Identity
-from features.constants import COMMITTED, DRAFT
 from features.models import Feature, FeatureState
 
 
@@ -14,13 +15,15 @@ def test_identity_get_all_feature_states_gets_latest_committed_version(environme
         initial_value="v1",
     )
 
+    now = timezone.now()
+
     # creating the feature above will have created a feature state with version=1,
     # now we create 2 more versions...
-    # one of which is committed...
+    # one of which is live...
     feature_state_v2 = FeatureState.objects.create(
         feature=feature,
         version=2,
-        status=COMMITTED,
+        live_from=now,
         enabled=True,
         environment=environment,
     )
@@ -31,7 +34,7 @@ def test_identity_get_all_feature_states_gets_latest_committed_version(environme
     feature_state_v3 = FeatureState.objects.create(
         feature=feature,
         version=3,
-        status=DRAFT,
+        live_from=None,
         enabled=False,
         environment=environment,
     )

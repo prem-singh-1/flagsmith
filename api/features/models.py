@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+import datetime
 import logging
 import typing
 from copy import deepcopy
@@ -11,6 +12,7 @@ from django.core.exceptions import (
 )
 from django.db import models
 from django.db.models import Q, UniqueConstraint
+from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from django_lifecycle import AFTER_CREATE, BEFORE_CREATE, LifecycleModel, hook
 from ordered_model.models import OrderedModelBase
@@ -245,11 +247,7 @@ class FeatureState(LifecycleModel, models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     version = models.IntegerField(default=1)
-    status = models.CharField(
-        choices=((DRAFT, "Draft"), (COMMITTED, "Committed")),
-        max_length=50,
-        default=COMMITTED,
-    )
+    live_from = models.DateTimeField(null=True)
 
     class Meta:
         # Note: these constraints are applied manually using SQL so that we can split
@@ -310,7 +308,10 @@ class FeatureState(LifecycleModel, models.Model):
         return not (other.feature_segment or other.identity)
 
     def clone(
-        self, env: "Environment", version: int = None, status: str = COMMITTED
+        self,
+        env: "Environment",
+        version: int = None,
+        live_from: datetime.datetime = None,
     ) -> "FeatureState":
         # Cloning the Identity is not allowed because they are closely tied
         # to the environment
@@ -328,7 +329,7 @@ class FeatureState(LifecycleModel, models.Model):
         )
         clone.environment = env
         clone.version = version or self.version
-        clone.status = status
+        clone.live_from = live_from
         clone.save()
         # clone the related objects
         self.feature_state_value.clone(clone)
@@ -502,14 +503,15 @@ class FeatureState(LifecycleModel, models.Model):
         associated with the given environment only (i.e. not identity or segment).
         """
 
-        # Get all committed feature states for a given environment. Note: includes
-        # all versions for a given environment / feature combination. We filter for the
-        # latest version later on.
+        # Get all feature states for a given environment with a valid live_from in the
+        # past. Note: includes all versions for a given environment / feature
+        # combination. We filter for the latest version later on.
         feature_states = cls.objects.filter(
             environment=environment,
             identity=None,
             feature_segment=None,
-            status=COMMITTED,
+            live_from__isnull=False,
+            live_from__lte=timezone.now(),
         ).exclude(
             feature__project__hide_disabled_flags=True,
             enabled=False,
@@ -531,7 +533,7 @@ class FeatureState(LifecycleModel, models.Model):
 
         return list(feature_states_dict.values())
 
-    def create_new_version(self, status: str = DRAFT):
+    def create_new_version(self, live_from: datetime.datetime = None):
         """
         Create a new version of this feature state by incrementing the version
         number by 1.
@@ -541,14 +543,21 @@ class FeatureState(LifecycleModel, models.Model):
 
         if FeatureState.objects.filter(version=new_version_number).exists():
             raise FeatureStateVersionAlreadyExistsError(version=new_version_number)
-        elif self.status != COMMITTED:
-            raise FeatureStateVersionError(
-                "Cannot create new version of a non-committed flag."
-            )
 
         return self.clone(
-            env=self.environment, version=new_version_number, status=status
+            env=self.environment,
+            version=new_version_number,
+            live_from=live_from,
         )
+
+    @hook(BEFORE_CREATE)
+    def set_live_from_for_version_1(self):
+        """
+        Set the live_from date on newly created, version 1 feature states to maintain
+        the previous behaviour.
+        """
+        if self.version == 1 and not self.live_from:
+            self.live_from = timezone.now()
 
 
 class FeatureStateValue(AbstractBaseFeatureValueModel):

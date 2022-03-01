@@ -2,6 +2,7 @@ import typing
 
 from django.db import models
 from django.db.models import Prefetch, Q
+from django.utils import timezone
 
 from environments.dynamodb import DynamoIdentityWrapper
 from environments.identities.traits.models import Trait
@@ -54,7 +55,7 @@ class Identity(models.Model):
 
         # define the full query
         full_query = (
-            Q(status=COMMITTED)
+            Q(live_from__lte=timezone.now())
             & belongs_to_environment_query
             & (
                 overridden_for_identity_query

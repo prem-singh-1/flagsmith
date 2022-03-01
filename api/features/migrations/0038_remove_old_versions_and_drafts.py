@@ -11,7 +11,7 @@ def remove_old_and_draft_versions(apps, schema_editor):
 
     # TODO: work out why this doesn't work when unapplying more than 1 migration
     # latest_versions_qs = (
-    #     FeatureState.objects.filter(status=COMMITTED)
+    #     FeatureState.objects.filter(live_from__lte=timezone.now())
     #     .values("feature", "feature_segment", "identity", "environment")
     #     .annotate(max_version=Max("version"))
     #     .order_by()

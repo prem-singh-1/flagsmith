@@ -6,6 +6,7 @@ import pytest
 import pytz
 from django.forms import model_to_dict
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
 
@@ -891,7 +892,7 @@ class FeatureStateViewSetTestCase(TestCase):
         feature_state = FeatureState.objects.get(
             environment=self.environment, feature=self.feature
         )
-        feature_state_v2 = feature_state.create_new_version(status=COMMITTED)
+        feature_state_v2 = feature_state.create_new_version(live_from=timezone.now())
 
         url = reverse(
             "api-v1:environments:environment-featurestates-list",

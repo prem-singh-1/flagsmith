@@ -6,6 +6,7 @@ from core.serializers import EmptySerializer
 from django.conf import settings
 from django.core.cache import caches
 from django.db.models import Max, Q, QuerySet
+from django.utils import timezone
 from django.utils.decorators import method_decorator
 from drf_yasg2 import openapi
 from drf_yasg2.utils import swagger_auto_schema
@@ -180,7 +181,9 @@ class BaseFeatureStateViewSet(viewsets.ModelViewSet):
         )
 
         latest_versions_qs = (
-            FeatureState.objects.filter(environment=environment, status=COMMITTED)
+            FeatureState.objects.filter(
+                environment=environment, live_from__lte=timezone.now()
+            )
             .values("feature", "feature_segment", "identity")
             .annotate(max_version=Max("version"))
             .order_by()
