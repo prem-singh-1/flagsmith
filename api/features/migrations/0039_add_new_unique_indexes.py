@@ -10,33 +10,38 @@ class Migration(migrations.Migration):
     atomic = False
 
     dependencies = [
-        ("features", "0037_add_feature_state_versioning_fields"),
+        ("features", "0038_remove_old_versions_and_drafts"),
     ]
 
     operations = [
         migrations.SeparateDatabaseAndState(
             state_operations=[
                 migrations.AddConstraint(
-                    model_name='featurestate',
+                    model_name="featurestate",
                     constraint=models.UniqueConstraint(
-                        condition=models.Q(('identity__isnull', True)),
-                        fields=('environment', 'feature', 'feature_segment', 'version'),
-                        name='unique_for_feature_segment'),
+                        condition=models.Q(("identity__isnull", True)),
+                        fields=("environment", "feature", "feature_segment", "version"),
+                        name="unique_for_feature_segment",
+                    ),
                 ),
                 migrations.AddConstraint(
-                    model_name='featurestate',
+                    model_name="featurestate",
                     constraint=models.UniqueConstraint(
-                        condition=models.Q(('feature_segment__isnull', True)),
-                        fields=('environment', 'feature', 'identity', 'version'),
-                        name='unique_for_identity'),
+                        condition=models.Q(("feature_segment__isnull", True)),
+                        fields=("environment", "feature", "identity", "version"),
+                        name="unique_for_identity",
+                    ),
                 ),
                 migrations.AddConstraint(
-                    model_name='featurestate',
+                    model_name="featurestate",
                     constraint=models.UniqueConstraint(
-                        condition=models.Q(('feature_segment__isnull', True),
-                                           ('identity__isnull', True)),
-                        fields=('environment', 'feature', 'version'),
-                        name='unique_for_environment'),
+                        condition=models.Q(
+                            ("feature_segment__isnull", True),
+                            ("identity__isnull", True),
+                        ),
+                        fields=("environment", "feature", "version"),
+                        name="unique_for_environment",
+                    ),
                 ),
             ],
             database_operations=[
@@ -76,6 +81,6 @@ class Migration(migrations.Migration):
                         WHERE "feature_segment_id" IS NULL;""",
                     reverse_sql='DROP INDEX "unique_for_identity"',
                 ),
-            ]
+            ],
         ),
     ]

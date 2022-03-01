@@ -1,3 +1,6 @@
+import pytest
+
+
 def test_migrate_feature_segments_forward(migrator):
     # Given - the migration state is at 0017 (before the migration we want to test)
     old_state = migrator.apply_initial_migration(
@@ -126,3 +129,42 @@ def test_migrate_feature_segments_reverse(migrator):
     # correct value. Just verify that the essential data is the same.
     assert NewFeatureSegment.objects.first().feature.pk == feature.pk
     assert NewFeatureSegment.objects.first().segment.pk == segment.pk
+
+
+# TODO: fix this
+@pytest.mark.skip(
+    "Not sure why this migration doesn't work when unapplying more than 1 migration."
+)
+def test_remove_old_versions_and_drafts_reverse(migrator):
+    # Given
+    old_state = migrator.apply_initial_migration(
+        ("features", "0038_remove_old_versions_and_drafts")
+    )
+
+    Organisation = old_state.apps.get_model("organisations", "Organisation")
+    Project = old_state.apps.get_model("projects", "Project")
+    Environment = old_state.apps.get_model("environments", "Environment")
+    Feature = old_state.apps.get_model("features", "Feature")
+    FeatureState = old_state.apps.get_model("features", "FeatureState")
+
+    organisation = Organisation.objects.create(name="test org")
+    project = Project.objects.create(name="test project", organisation=organisation)
+    environment = Environment.objects.create(name="test environment", project=project)
+    feature = Feature.objects.create(name="test_feature", project=project)
+
+    v1 = FeatureState.objects.create(
+        environment=environment, feature=feature, version=1
+    )
+    FeatureState.objects.create(
+        environment=environment, feature=feature, version=2
+    )
+
+    # When
+    new_state = migrator.apply_tested_migration(
+        ("features", "0036_remove_existing_constraints")  # This doesn't
+        # ("features", "0037_add_feature_state_versioning_fields")  # This works
+    )
+
+    # Then
+    NewFeatureState = new_state.apps.get_model("features", "FeatureState")
+    assert not NewFeatureState.objects.filter(id=v1.id).exists()

@@ -16,16 +16,16 @@ class Migration(migrations.Migration):
         migrations.SeparateDatabaseAndState(
             state_operations=[
                 migrations.RemoveConstraint(
-                    model_name='featurestate',
-                    name='unique_for_feature_segment',
+                    model_name="featurestate",
+                    name="unique_for_feature_segment",
                 ),
                 migrations.RemoveConstraint(
-                    model_name='featurestate',
-                    name='unique_for_identity',
+                    model_name="featurestate",
+                    name="unique_for_identity",
                 ),
                 migrations.RemoveConstraint(
-                    model_name='featurestate',
-                    name='unique_for_environment',
+                    model_name="featurestate",
+                    name="unique_for_environment",
                 ),
             ],
             database_operations=[
@@ -65,6 +65,6 @@ class Migration(migrations.Migration):
                     ON "features_featurestate" ("environment_id", "feature_id", "identity_id") 
                     WHERE "feature_segment_id" IS NULL;""",
                 ),
-            ]
+            ],
         ),
     ]
