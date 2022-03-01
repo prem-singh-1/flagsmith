@@ -4,6 +4,7 @@ import pytest
 from django.core.exceptions import ValidationError
 from django.db.utils import IntegrityError
 from django.test import TestCase
+from django.utils import timezone
 
 from environments.identities.models import Identity
 from environments.models import Environment
@@ -353,7 +354,7 @@ class FeatureStateTest(TestCase):
         # Then
         mock_trigger_webhooks.assert_called_with(feature_state)
 
-    def test_get_environment_flags_returns_latest_committed_versions_of_feature_states(
+    def test_get_environment_flags_returns_latest_live_versions_of_feature_states(
         self,
     ):
         # Given
@@ -364,13 +365,16 @@ class FeatureStateTest(TestCase):
         feature_2_v1_feature_state = FeatureState.objects.get(feature=feature_2)
 
         feature_1_v2_feature_state = FeatureState.objects.create(
-            feature=feature_1, enabled=True, version=2, environment=self.environment
+            feature=feature_1,
+            enabled=True,
+            version=2,
+            environment=self.environment,
+            live_from=timezone.now(),
         )
         FeatureState.objects.create(
             feature=feature_1,
             enabled=False,
             version=3,
-            status="DRAFT",
             environment=self.environment,
         )
 
