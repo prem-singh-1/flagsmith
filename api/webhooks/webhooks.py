@@ -1,10 +1,10 @@
 import enum
-import hashlib
-import hmac
 import json
 import typing
 
 import requests
+from core.constants import FLAGSMITH_SIGNATURE_HEADER
+from core.signing import sign_payload
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.core.serializers.json import DjangoJSONEncoder
@@ -17,7 +17,6 @@ from webhooks.sample_webhook_data import (
     organisation_webhook_data,
 )
 
-from .constants import WEBHOOK_SIGNATURE_HEADER
 from .models import AbstractBaseWebhookModel
 from .serializers import WebhookSerializer
 
@@ -29,6 +28,7 @@ WebhookModels = typing.Union[OrganisationWebhook, "environments.models.Webhook"]
 
 class WebhookEventType(enum.Enum):
     FLAG_UPDATED = "FLAG_UPDATED"
+    FLAG_DELETED = "FLAG_DELETED"
     AUDIT_LOG_CREATED = "AUDIT_LOG_CREATED"
 
 
@@ -48,12 +48,6 @@ def get_webhook_model(webhook_type: WebhookType) -> typing.Union[WebhookModels]:
         return OrganisationWebhook
     if webhook_type == WebhookType.ENVIRONMENT:
         return Webhook
-
-
-def generate_signature(payload: str, key: str) -> str:
-    return hmac.new(
-        key=key.encode(), msg=payload.encode(), digestmod=hashlib.sha256
-    ).hexdigest()
 
 
 def call_environment_webhooks(environment, data, event_type):
@@ -95,8 +89,8 @@ def _call_webhook(
     headers = {"content-type": "application/json"}
     json_data = json.dumps(data, sort_keys=True, cls=DjangoJSONEncoder)
     if webhook.secret:
-        signature = generate_signature(json_data, key=webhook.secret)
-        headers.update({WEBHOOK_SIGNATURE_HEADER: signature})
+        signature = sign_payload(json_data, key=webhook.secret)
+        headers.update({FLAGSMITH_SIGNATURE_HEADER: signature})
 
     return requests.post(str(webhook.url), data=json_data, headers=headers)
 
