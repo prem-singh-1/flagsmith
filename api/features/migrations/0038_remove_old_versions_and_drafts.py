@@ -38,6 +38,13 @@ sql = f"""
 
 
 class Migration(migrations.Migration):
+    """
+    This migration removes all old / unreleased feature states from the database so
+    that the old unique constraints can be added again.
+
+    We do this using raw SQL since the django approach caused problems when migrating
+    backwards and unapplying more than one migration.
+    """
 
     dependencies = [
         ("features", "0037_add_feature_state_versioning_fields"),
