@@ -1,4 +1,6 @@
-import pytest
+from datetime import timedelta
+
+from django.utils import timezone
 
 
 def test_migrate_feature_segments_forward(migrator):
@@ -131,14 +133,10 @@ def test_migrate_feature_segments_reverse(migrator):
     assert NewFeatureSegment.objects.first().segment.pk == segment.pk
 
 
-# TODO: fix this
-@pytest.mark.skip(
-    "Not sure why this migration doesn't work when unapplying more than 1 migration."
-)
-def test_remove_old_versions_and_drafts_reverse(migrator):
+def test_revert_feature_state_versioning_migrations(migrator):
     # Given
     old_state = migrator.apply_initial_migration(
-        ("features", "0038_remove_old_versions_and_drafts")
+        ("features", "0039_add_new_unique_indexes")
     )
 
     Organisation = old_state.apps.get_model("organisations", "Organisation")
@@ -153,16 +151,30 @@ def test_remove_old_versions_and_drafts_reverse(migrator):
     feature = Feature.objects.create(name="test_feature", project=project)
 
     v1 = FeatureState.objects.create(
-        environment=environment, feature=feature, version=1
+        environment=environment,
+        feature=feature,
+        version=1,
+        live_from=timezone.now() - timedelta(days=1),
     )
-    FeatureState.objects.create(environment=environment, feature=feature, version=2)
+    v2 = FeatureState.objects.create(
+        environment=environment,
+        feature=feature,
+        version=2,
+        live_from=timezone.now() - timedelta(days=1),
+    )
+    v3 = FeatureState.objects.create(
+        environment=environment,
+        feature=feature,
+        version=3,
+        live_from=timezone.now() + timedelta(days=1),
+    )
 
     # When
-    new_state = migrator.apply_tested_migration(
-        ("features", "0036_remove_existing_constraints")  # This doesn't
-        # ("features", "0037_add_feature_state_versioning_fields")  # This works
-    )
+    new_state = migrator.apply_tested_migration(("features", "0035_auto_20211109_0603"))
 
     # Then
+    # only the latest live versions of feature states are retained
     NewFeatureState = new_state.apps.get_model("features", "FeatureState")
     assert not NewFeatureState.objects.filter(id=v1.id).exists()
+    assert not NewFeatureState.objects.filter(id=v3.id).exists()
+    assert NewFeatureState.objects.filter(id=v2.id).exists()

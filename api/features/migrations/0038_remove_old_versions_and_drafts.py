@@ -6,29 +6,35 @@ from django.db import migrations
 from features.constants import DRAFT
 
 
-def remove_old_and_draft_versions(apps, schema_editor):
-    FeatureState = apps.get_model("features", "FeatureState")
+sub_query = """
+    select
+        distinct fs1.id
+    from
+        features_featurestate fs1
+    left outer join features_featurestate fs2 on
+        (fs1.environment_id = fs2.environment_id
+            and fs1.feature_id = fs2.feature_id
+            and (fs1.identity_id = fs2.identity_id
+                or (fs1.identity_id is null
+                    and fs2.identity_id is null))
+            and (fs1.feature_segment_id = fs2.feature_segment_id
+                or (fs1.feature_segment_id is null
+                    and fs2.feature_segment_id is null))
+            and fs1.version < fs2.version
+            and fs2.live_from < now())
+    where
+        (fs2.id is not null
+            or fs1.live_from > now())
+"""
 
-    # TODO: work out why this doesn't work when unapplying more than 1 migration
-    # latest_versions_qs = (
-    #     FeatureState.objects.filter(live_from__lte=timezone.now())
-    #     .values("feature", "feature_segment", "identity", "environment")
-    #     .annotate(max_version=Max("version"))
-    #     .order_by()
-    # )
-    # q = Q()
-    # for latest_version_dict in latest_versions_qs:
-    #     q = q | Q(
-    #         feature_id=latest_version_dict["feature"],
-    #         identity_id=latest_version_dict["identity"],
-    #         feature_segment_id=latest_version_dict["feature_segment"],
-    #         environment_id=latest_version_dict["environment"],
-    #         version=latest_version_dict["max_version"],
-    #     )
-    #
-    # FeatureState.objects.filter(q).delete()
 
-    FeatureState.objects.filter(status=DRAFT).delete()
+sql = f"""
+    delete from features_featurestatevalue 
+    where feature_state_id in ({sub_query});
+
+    delete from features_featurestate
+    where id in ({sub_query});
+"""
 
 
 class Migration(migrations.Migration):
@@ -38,9 +44,5 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(
-            code=migrations.RunPython.noop,
-            reverse_code=remove_old_and_draft_versions,
-            atomic=False,
-        ),
+        migrations.RunSQL(sql="", reverse_sql=sql),
     ]
