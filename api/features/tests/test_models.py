@@ -358,21 +358,18 @@ class FeatureStateTest(TestCase):
         self,
     ):
         # Given
-        # TODO: tidy up this test to use more attributes from the class
-        feature_1 = Feature.objects.create(name="feature_1", project=self.project)
         feature_2 = Feature.objects.create(name="feature_2", project=self.project)
-
         feature_2_v1_feature_state = FeatureState.objects.get(feature=feature_2)
 
         feature_1_v2_feature_state = FeatureState.objects.create(
-            feature=feature_1,
+            feature=self.feature,
             enabled=True,
             version=2,
             environment=self.environment,
             live_from=timezone.now(),
         )
         FeatureState.objects.create(
-            feature=feature_1,
+            feature=self.feature,
             enabled=False,
             version=3,
             environment=self.environment,
@@ -382,7 +379,7 @@ class FeatureStateTest(TestCase):
             identifier="identity", environment=self.environment
         )
         FeatureState.objects.create(
-            feature=feature_1, identity=identity, environment=self.environment
+            feature=self.feature, identity=identity, environment=self.environment
         )
 
         # When
@@ -394,7 +391,6 @@ class FeatureStateTest(TestCase):
         assert set(environment_feature_states) == {
             feature_1_v2_feature_state,
             feature_2_v1_feature_state,
-            FeatureState.objects.get(feature=self.feature),
         }
 
     def test_create_new_version_creates_new_version_if_does_not_exist_already(self):
